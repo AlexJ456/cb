@@ -53,30 +53,22 @@ self.addEventListener('fetch', event => {
           console.log('Serving from cache:', event.request.url);
           return response;
         }
-
-        // Clone the request for fetching
         const fetchRequest = event.request.clone();
-
         return fetch(fetchRequest)
           .then(response => {
-            // Validate response
             if (!response || response.status !== 200 || response.type !== 'basic') {
               return response;
             }
-
-            // Clone and cache the response
             const responseToCache = response.clone();
             caches.open(CACHE_NAME)
               .then(cache => {
                 console.log('Caching new resource:', event.request.url);
                 cache.put(event.request, responseToCache);
               });
-
             return response;
           })
           .catch(() => {
             console.log('Fetch failed, serving fallback:', event.request.url);
-            // Fallback to index.html for navigation requests
             if (event.request.mode === 'navigate') {
               return caches.match('./index.html');
             }
