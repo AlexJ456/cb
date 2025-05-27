@@ -1,53 +1,261 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coherent Breathing</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background-color: #000; color: #fff; font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-    .container { position: relative; width: 100%; max-width: 500px; height: calc(100vh - 2rem); margin: 1rem; display: flex; flex-direction: column; }
-    #box-canvas { flex-grow: 0; width: 100%; height: 50%; }
-    #app-content { flex-grow: 1; padding: 1rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
-    h1 { font-size: 2rem; text-align: center; color: #d97706; }
-    .timer, .instruction, .countdown { font-size: 1.5rem; text-align: center; }
-    .instruction { color: #f59e0b; font-weight: bold; }
-    .countdown { font-size: 2rem; }
-    .settings { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 300px; }
-    .form-group { position: relative; display: flex; align-items: center; gap: 0.5rem; }
-    .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: 0.4s; border-radius: 34px; }
-    .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: 0.4s; border-radius: 50%; }
-    input:checked + .slider { background-color: #d97706; }
-    input:checked + .slider:before { transform: translateX(26px); }
-    label { font-size: 1rem; color: #fff; }
-    input[type="number"] { width: 100%; padding: 0.5rem; font-size: 1rem; border: 1px solid #d97706; border-radius: 4px; background: #1a1a1a; color: #fff; }
-    input[type="number"]::placeholder { color: #888; }
-    .form-group label:not(.switch label) { position: absolute; top: -0.5rem; left: 0.5rem; font-size: 0.8rem; color: #d97706; background: #000; padding: 0 0.2rem; }
-    .prompt { font-size: 1rem; color: #888; }
-    .complete { font-size: 2rem; color: #f59e0b; text-align: center; }
-    button { padding: 0.75rem 1.5rem; font-size: 1rem; color: #fff; background-color: #d97706; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
-    button:hover { background-color: #f59e0b; }
-    .shortcut-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
-    .preset-button { background-color: #1a1a1a; border: 1px solid #d97706; }
-    .preset-button:hover { background-color: #333; }
-    .icon { width: 24px; height: 24px; fill: #fff; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Coherent Breathing</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            color: #ffedd5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Offline notification styles */
+        #offline-notification {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #92400e;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #box-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        #app-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 4rem;
+            color: #fcd34d;
+        }
+
+        .instruction {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            color: #fdba74;
+        }
+
+        .countdown {
+            font-size: 4rem;
+            font-weight: bold;
+            margin-bottom: 2.5rem;
+            color: #ff6b6b;
+        }
+
+        .prompt {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            color: #fde68a;
+        }
+
+        .complete {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            color: #4ade80;
+        }
+
+        .timer {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            color: #fde68a;
+            z-index: 2;
+        }
+
+        .form-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 0.5rem;
+        }
+
+        .settings {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 2rem;
+            gap: 1rem;
+        }
+
+        input[type="number"] {
+            background-color: #78350f;
+            color: #ffedd5;
+            border: 1px solid #d97706;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 16px;
+        }
+
+        label {
+            color: #fde68a;
+            display: flex;
+            align-items: center;
+        }
+
+        button {
+            font-size: 1.25rem;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(to bottom, #d97706, #b45309);
+            color: black;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        button:hover {
+            background: linear-gradient(to bottom, #b45309, #92400e);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #374151;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #d97706;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        .icon {
+            display: inline-block;
+            vertical-align: middle;
+            width: 24px;
+            height: 24px;
+            stroke-width: 2;
+            stroke: currentColor;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .shortcut-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .preset-button {
+            font-size: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: #92400e;
+            color: #ffedd5;
+        }
+
+        .preset-button:hover {
+            background-color: #78350f;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <canvas id="box-canvas"></canvas>
-    <div id="app-content"></div>
-  </div>
-  <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js')
-        .then(reg => console.log('Service Worker registered', reg))
-        .catch(err => console.log('Service Worker registration failed', err));
-    }
-  </script>
+    <!-- Offline notification div -->
+    <div id="offline-notification" style="display: none;">You are offline, but the app will work normally</div>
+    
+    <div class="container">
+        <canvas id="box-canvas"></canvas>
+        <div id="app-content"></div>
+    </div>
+
+    <script src="app.js"></script>
+
+    <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
