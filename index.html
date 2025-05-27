@@ -1,212 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coherent Breathing</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #000000;
-            color: #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        .container {
-            background-color: #1a1a1a;
-            border-radius: 10px;
-            padding: 30px;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            position: relative;
-        }
-        h1 {
-            text-align: center;
-            color: #d97706;
-            margin-bottom: 20px;
-        }
-        canvas {
-            display: block;
-            margin: 20px auto;
-            background-color: #2a2a2a;
-            border-radius: 5px;
-        }
-        .timer {
-            text-align: center;
-            font-size: 1.2em;
-            margin-bottom: 10px;
-        }
-        .instruction {
-            text-align: center;
-            font-size: 1.5em;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #f0f0f0;
-        }
-        .countdown {
-            text-align: center;
-            font-size: 2em;
-            margin-bottom: 20px;
-            color: #d97706;
-        }
-        .settings {
-            margin-bottom: 20px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #a0a0a0;
-        }
-        input[type="number"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #444;
-            border-radius: 4px;
-            background-color: #2a2a2a;
-            color: #ffffff;
-            font-size: 1em;
-        }
-        input[type="number"]:focus {
-            border-color: #d97706;
-            outline: none;
-        }
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 24px;
-        }
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #444;
-            transition: .4s;
-            border-radius: 24px;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        input:checked + .slider {
-            background-color: #d97706;
-        }
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
-        .prompt {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #a0a0a0;
-        }
-        button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            padding: 10px;
-            background-color: #d97706;
-            color: #ffffff;
-            border: none;
-            border-radius: 4px;
-            font-size: 1em;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            margin-bottom: 10px;
-        }
-        button:hover {
-            background-color: #b86505;
-        }
-        .icon {
-            width: 24px;
-            height: 24px;
-            margin-right: 10px;
-            fill: currentColor;
-        }
-        .complete {
-            text-align: center;
-            font-size: 2em;
-            color: #d97706;
-            margin-bottom: 20px;
-        }
-        .shortcut-buttons {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-        .preset-button {
-            flex: 1;
-            margin: 0 5px;
-            padding: 10px;
-            background-color: #2a2a2a;
-            color: #d97706;
-            border: 1px solid #d97706;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .preset-button:hover {
-            background-color: #3a3a3a;
-        }
-        @media (max-width: 400px) {
-            .container {
-                padding: 20px;
-            }
-            h1 {
-                font-size: 1.5em;
-            }
-            .instruction {
-                font-size: 1.2em;
-            }
-            .countdown {
-                font-size: 1.5em;
-            }
-            button {
-                font-size: 0.9em;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coherent Breathing</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background-color: #000; color: #fff; font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .container { position: relative; width: 100%; max-width: 500px; height: calc(100vh - 2rem); margin: 1rem; display: flex; flex-direction: column; }
+    #box-canvas { flex-grow: 0; width: 100%; height: 50%; }
+    #app-content { flex-grow: 1; padding: 1rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+    h1 { font-size: 2rem; text-align: center; color: #d97706; }
+    .timer, .instruction, .countdown { font-size: 1.5rem; text-align: center; }
+    .instruction { color: #f59e0b; font-weight: bold; }
+    .countdown { font-size: 2rem; }
+    .settings { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 300px; }
+    .form-group { position: relative; display: flex; align-items: center; gap: 0.5rem; }
+    .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: 0.4s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: 0.4s; border-radius: 50%; }
+    input:checked + .slider { background-color: #d97706; }
+    input:checked + .slider:before { transform: translateX(26px); }
+    label { font-size: 1rem; color: #fff; }
+    input[type="number"] { width: 100%; padding: 0.5rem; font-size: 1rem; border: 1px solid #d97706; border-radius: 4px; background: #1a1a1a; color: #fff; }
+    input[type="number"]::placeholder { color: #888; }
+    .form-group label:not(.switch label) { position: absolute; top: -0.5rem; left: 0.5rem; font-size: 0.8rem; color: #d97706; background: #000; padding: 0 0.2rem; }
+    .prompt { font-size: 1rem; color: #888; }
+    .complete { font-size: 2rem; color: #f59e0b; text-align: center; }
+    button { padding: 0.75rem 1.5rem; font-size: 1rem; color: #fff; background-color: #d97706; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
+    button:hover { background-color: #f59e0b; }
+    .shortcut-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
+    .preset-button { background-color: #1a1a1a; border: 1px solid #d97706; }
+    .preset-button:hover { background-color: #333; }
+    .icon { width: 24px; height: 24px; fill: #fff; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div id="app-content"></div>
-        <canvas id="box-canvas"></canvas>
-    </div>
-    <script src="./app.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./service-worker.js')
-                .then(registration => {
-                    console.log('Service Worker registered with scope:', registration.scope);
-                })
-                .catch(error => {
-                    console.error('Service Worker registration failed:', error);
-                });
-        }
-    </script>
+  <div class="container">
+    <canvas id="box-canvas"></canvas>
+    <div id="app-content"></div>
+  </div>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(reg => console.log('Service Worker registered', reg))
+        .catch(err => console.log('Service Worker registration failed', err));
+    }
+  </script>
 </body>
 </html>
