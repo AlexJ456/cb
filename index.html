@@ -48,7 +48,7 @@
             box-sizing: border-box;
         }
 
-        #box-canvas {
+        #breathing-canvas {
             position: absolute;
             top: 0;
             left: 0;
@@ -69,20 +69,22 @@
         h1 {
             font-size: 2.5rem;
             font-weight: bold;
-            margin-bottom: 4rem;
+            margin-bottom: 2rem;
             color: #fcd34d;
+            position: relative;
+            top: -2rem;
         }
 
         .instruction {
             font-size: 2rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
             color: #fdba74;
         }
 
         .countdown {
             font-size: 4rem;
             font-weight: bold;
-            margin-bottom: 2.5rem;
+            margin-bottom: 1rem;
             color: #ff6b6b;
         }
 
@@ -149,6 +151,8 @@
             justify-content: center;
             gap: 0.5rem;
             box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+            position: relative;
+            bottom: -2rem;
         }
 
         button:hover {
@@ -237,7 +241,7 @@
     <div id="offline-notification" style="display: none;">You are offline, but the app will work normally</div>
     
     <div class="container">
-        <canvas id="box-canvas"></canvas>
+        <canvas id="breathing-canvas"></canvas>
         <div id="app-content"></div>
     </div>
 
