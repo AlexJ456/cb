@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const app = document.getElementById('app-content');
     const canvas = document.getElementById('breathing-canvas');
     const container = document.querySelector('.container');
-    canvas.width = container.clientWidth;
+    canvas.width = container.clientWidth * 0.3; // Match the CSS width (30%)
     canvas.height = container.clientHeight;
 
     const state = {
@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const lineWidth = 10;
         const dotRadius = 15;
         const lineY = canvas.height / 2;
-        const lineStartX = (canvas.width - lineWidth) / 2;
+        const lineStartX = canvas.width / 2;
         const topY = lineY - lineHeight / 2;
         const bottomY = lineY + lineHeight / 2;
         let dotY = state.count === 0 ? 
@@ -215,12 +215,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function render() {
-        let html = `<h1>Coherent Breathing</h1>`;
+        let html = `<div class="title-container"><h1>Coherent Breathing</h1></div>`;
         if (state.isPlaying) {
             html += `
                 <div class="timer">Total Time: ${formatTime(state.totalTime)}</div>
-                <div class="instruction">${getInstruction(state.count)}</div>
-                <div class="countdown">${state.displayCountdown.toFixed(1)}</div>
+                <div class="counter-container">
+                    <div class="instruction">${getInstruction(state.count)}</div>
+                    <div class="countdown">${state.displayCountdown.toFixed(1)}</div>
+                </div>
             `;
         } else if (!state.sessionComplete) {
             html += `
@@ -256,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         html += `
             <button id="toggle-play">
-                ${state.isPlaying ? icons.pause : icons.play}
+                ${stateنشisPlaying ? icons.pause : icons.play}
                 ${state.isPlaying ? 'Pause' : 'Start'}
             </button>
         `;
