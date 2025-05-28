@@ -22,7 +22,6 @@
             overflow: hidden;
         }
 
-        /* Offline notification styles */
         #offline-notification {
             position: fixed;
             top: 10px;
@@ -64,6 +63,8 @@
             flex-direction: column;
             align-items: center;
             width: 100%;
+            padding-top: 4rem;
+            padding-bottom: 4rem;
         }
 
         h1 {
@@ -71,8 +72,6 @@
             font-weight: bold;
             margin-bottom: 2rem;
             color: #fcd34d;
-            position: relative;
-            top: -2rem;
         }
 
         .instruction {
@@ -151,8 +150,6 @@
             justify-content: center;
             gap: 0.5rem;
             box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
-            position: relative;
-            bottom: -2rem;
         }
 
         button:hover {
@@ -237,27 +234,18 @@
     </style>
 </head>
 <body>
-    <!-- Offline notification div -->
     <div id="offline-notification" style="display: none;">You are offline, but the app will work normally</div>
-    
     <div class="container">
         <canvas id="breathing-canvas"></canvas>
         <div id="app-content"></div>
     </div>
-
     <script src="app.js"></script>
-
     <script>
-        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('service-worker.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                    })
-                    .catch(error => {
-                        console.log('ServiceWorker registration failed: ', error);
-                    });
+                    .then(reg => console.log('ServiceWorker registered:', reg.scope))
+                    .catch(err => console.log('ServiceWorker registration failed:', err));
             });
         }
     </script>
