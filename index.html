@@ -22,6 +22,7 @@
             overflow: hidden;
         }
 
+        /* Offline notification styles */
         #offline-notification {
             position: fixed;
             top: 10px;
@@ -45,6 +46,7 @@
             padding: 1rem;
             width: 100%;
             box-sizing: border-box;
+            padding-left: 10%; /* Shift content left */
         }
 
         #box-canvas {
@@ -61,51 +63,27 @@
             z-index: 1;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            width: 100%;
-            max-width: 1179px; /* iPhone 16 Pro width */
+            align-items: flex-start; /* Align text to left */
+            width: 60%; /* Limit width to leave space for animation */
         }
 
         h1 {
             font-size: 2.5rem;
             font-weight: bold;
-            margin: 0 0 1rem 0;
+            margin-bottom: 2rem; /* Reduced to move title up */
             color: #fcd34d;
-            position: absolute;
-            top: 2rem;
-        }
-
-        .exercise-container {
-            display: flex;
-            flex-direction: row;
-            justify-content: space-between;
-            width: 100%;
-            max-width: 600px;
-            padding: 1rem;
-            min-height: 300px;
-        }
-
-        .left-panel {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .right-panel {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
         }
 
         .instruction {
             font-size: 2rem;
+            margin-bottom: 2rem;
             color: #fdba74;
         }
 
         .countdown {
             font-size: 4rem;
             font-weight: bold;
+            margin-bottom: 2.5rem;
             color: #ff6b6b;
         }
 
@@ -139,7 +117,7 @@
         .settings {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: flex-start; /* Align settings to left */
             margin-bottom: 2rem;
             gap: 1rem;
         }
@@ -172,8 +150,7 @@
             justify-content: center;
             gap: 0.5rem;
             box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
-            position: relative;
-            margin-top: 2rem;
+            margin-top: 2rem; /* Move button down */
         }
 
         button:hover {
@@ -242,7 +219,7 @@
             gap: 0.5rem;
             margin-top: 1.5rem;
             flex-wrap: wrap;
-            justify-content: center;
+            justify-content: flex-start; /* Align buttons to left */
         }
 
         .preset-button {
@@ -258,6 +235,7 @@
     </style>
 </head>
 <body>
+    <!-- Offline notification div -->
     <div id="offline-notification" style="display: none;">You are offline, but the app will work normally</div>
     
     <div class="container">
@@ -268,6 +246,7 @@
     <script src="app.js"></script>
 
     <script>
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('service-worker.js')
