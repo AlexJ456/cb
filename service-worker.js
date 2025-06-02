@@ -1,4 +1,4 @@
-const CACHE_NAME = 'coherent-breathing-cache-v1'; // Updated for new app
+const CACHE_NAME = 'coherent-breathing-cache-v1';
 const urlsToCache = [
   './',
   './index.html',
@@ -8,7 +8,6 @@ const urlsToCache = [
   './icons/icon-512x512.png'
 ];
 
-// Install event - cache assets
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -20,11 +19,9 @@ self.addEventListener('install', event => {
         console.error('Cache addAll failed:', error);
       })
   );
-  // Activate immediately
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', event => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
@@ -38,13 +35,11 @@ self.addEventListener('activate', event => {
         })
       );
     }).then(() => {
-      // Take control of clients immediately
       return self.clients.claim();
     })
   );
 });
 
-// Fetch event - serve from cache or network
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
@@ -54,17 +49,14 @@ self.addEventListener('fetch', event => {
           return response;
         }
 
-        // Clone the request for fetching
         const fetchRequest = event.request.clone();
 
         return fetch(fetchRequest)
           .then(response => {
-            // Validate response
             if (!response || response.status !== 200 || response.type !== 'basic') {
               return response;
             }
 
-            // Clone and cache the response
             const responseToCache = response.clone();
             caches.open(CACHE_NAME)
               .then(cache => {
@@ -76,7 +68,6 @@ self.addEventListener('fetch', event => {
           })
           .catch(() => {
             console.log('Fetch failed, serving fallback:', event.request.url);
-            // Fallback to index.html for navigation requests
             if (event.request.mode === 'navigate') {
               return caches.match('./index.html');
             }
@@ -85,7 +76,6 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// Handle skip waiting messages
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
