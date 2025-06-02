@@ -1,28 +1,28 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const app = document.getElementById('app-content');
+    const textContent = document.querySelector('.text-content');
     const canvas = document.getElementById('box-canvas');
-    const container = document.querySelector('.container');
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
+    const animationContent = document.querySelector('.animation-content');
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.width = animationContent.clientWidth;
+    canvas.height = animationContent.clientHeight;
     
     const state = {
         isPlaying: false,
-        count: 0, // 0: inhale, 1: exhale
+        count: 0,
         totalTime: 0,
         soundEnabled: false,
         timeLimit: '',
         sessionComplete: false,
         timeLimitReached: false,
-        phaseDuration: 5.5, // Fixed at 5.5 seconds
-        currentPhaseStartTime: null,
+        phaseTime: 5.5,
+        phaseStartTime: null,
         pulseStartTime: null
     };
 
     let wakeLock = null;
     let audioContext = new (window.AudioContext || window.webkitAudioContext)();
     let phaseTimeout;
-    let totalTimeInterval;
-    let animationFrameId;
 
     const icons = {
         play: `<svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`,
@@ -57,6 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
+
+    let interval;
+    let animationFrameId;
 
     async function requestWakeLock() {
         if ('wakeLock' in navigator) {
@@ -93,23 +96,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
             state.totalTime = 0;
-            state.count = -1; // First startPhase sets to 0
+            state.count = 0;
             state.sessionComplete = false;
             state.timeLimitReached = false;
-            state.currentPhaseStartTime = performance.now();
-            totalTimeInterval = setInterval(() => {
-                state.totalTime += 1;
-                if (state.timeLimit && state.totalTime >= parseInt(state.timeLimit) * 60) {
-                    state.timeLimitReached = true;
-                }
-                render();
-            }, 1000);
+            startInterval();
             startPhase();
             animate();
             requestWakeLock();
         } else {
+            clearInterval(interval);
             clearTimeout(phaseTimeout);
-            clearInterval(totalTimeInterval);
             cancelAnimationFrame(animationFrameId);
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -125,8 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
         state.sessionComplete = false;
         state.timeLimit = '';
         state.timeLimitReached = false;
+        clearInterval(interval);
         clearTimeout(phaseTimeout);
-        clearInterval(totalTimeInterval);
         cancelAnimationFrame(animationFrameId);
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -147,118 +143,113 @@ document.addEventListener('DOMContentLoaded', () => {
         state.timeLimit = minutes.toString();
         state.isPlaying = true;
         state.totalTime = 0;
-        state.count = -1;
+        state.count = 0;
         state.sessionComplete = false;
         state.timeLimitReached = false;
-        state.currentPhaseStartTime = performance.now();
         if (audioContext && audioContext.state === 'suspended') {
             audioContext.resume().then(() => {
                 console.log('AudioContext resumed');
             });
         }
-        totalTimeInterval = setInterval(() => {
-            state.totalTime += 1;
-            if (state.timeLimit && state.totalTime >= parseInt(state.timeLimit) * 60) {
-                state.timeLimitReached = true;
-            }
-            render();
-        }, 1000);
+        startInterval();
         startPhase();
         animate();
         requestWakeLock();
         render();
     }
 
+    function startInterval() {
+        clearInterval(interval);
+        interval = setInterval(() => {
+            state.totalTime += 1;
+            if (state.timeLimit && !state.timeLimitReached) {
+                const timeLimitSeconds = parseInt(state.timeLimit) * 60;
+                if (state.totalTime >= timeLimitSeconds) {
+                    state.timeLimitReached = true;
+                }
+            }
+        }, 1000);
+    }
+
     function startPhase() {
-        if (!state.isPlaying) return;
-        state.count = (state.count + 1) % 2;
-        state.currentPhaseStartTime = performance.now();
+        state.phaseStartTime = performance.now();
         state.pulseStartTime = performance.now();
         playTone();
-        if (state.timeLimitReached && state.count === 1) {
-            state.sessionComplete = true;
-            state.isPlaying = false;
-            clearInterval(totalTimeInterval);
-            cancelAnimationFrame(animationFrameId);
-            releaseWakeLock();
-        } else {
-            phaseTimeout = setTimeout(startPhase, state.phaseDuration * 1000);
-        }
         render();
+        phaseTimeout = setTimeout(() => {
+            if (state.timeLimitReached && state.count === 1) {
+                state.sessionComplete = true;
+                state.isPlaying = false;
+                clearInterval(interval);
+                cancelAnimationFrame(animationFrameId);
+                releaseWakeLock();
+                render();
+            } else {
+                state.count = (state.count + 1) % 2;
+                startPhase();
+            }
+        }, state.phaseTime * 1000);
     }
 
     function animate() {
         if (!state.isPlaying) return;
         const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const elapsed = (performance.now() - state.currentPhaseStartTime) / 1000;
-        const progress = Math.min(1, elapsed / state.phaseDuration);
-        const lineX = canvas.width - 50;
-        const lineStartY = canvas.height * 0.2;
-        const lineEndY = canvas.height * 0.8;
+        const elapsed = (performance.now() - state.phaseStartTime) / 1000;
+        const progress = Math.min(elapsed / state.phaseTime, 1);
+        
+        const changeTimes = [0, 0.5, 1.5, 2.5, 3.5, 4.5];
+        const countdownValues = [5.5, 5, 4, 3, 2, 1];
+        let displayIndex = 0;
+        for (let i = 1; i < changeTimes.length; i++) {
+            if (elapsed >= changeTimes[i]) {
+                displayIndex = i;
+            } else {
+                break;
+            }
+        }
+        const displayCountdown = countdownValues[displayIndex];
+        document.getElementById('countdown-display').textContent = displayCountdown.toString();
 
-        // Draw thicker line
+        const topMargin = 50;
+        const bottomMargin = canvas.height - 50;
+        const x = canvas.width / 2;
+        let y = state.count === 0 
+            ? bottomMargin - progress * (bottomMargin - topMargin) 
+            : topMargin + progress * (bottomMargin - topMargin);
+
+        ctx.clearRect(0, 0, canvas.width, ascended to the top of the canvas.
         ctx.beginPath();
-        ctx.moveTo(lineX, lineStartY);
-        ctx.lineTo(lineX, lineEndY);
-        ctx.lineWidth = 5;
+        ctx.moveTo(x, topMargin);
+        ctx.lineTo(x, bottomMargin);
         ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 4;
         ctx.stroke();
 
-        // Calculate dot position
-        let dotY;
-        if (state.count === 0) { // Inhale: bottom to top
-            dotY = lineEndY - progress * (lineEndY - lineStartY);
-        } else { // Exhale: top to bottom
-            dotY = lineStartY + progress * (lineEndY - lineStartY);
-        }
-
-        // Pulse effect for bigger dot
         let radius = 10;
         if (state.pulseStartTime !== null) {
             const pulseElapsed = (performance.now() - state.pulseStartTime) / 1000;
             if (pulseElapsed < 0.5) {
-                const pulseFactor = Math.sin(Math.PI * pulseElapsed / 0.5);
-                radius = 10 + 5 * pulseFactor;
+                radius = 10 + 10 * Math.sin(Math.PI * pulseElapsed / 0.5);
             }
         }
-
-        // Draw bigger dot
         ctx.beginPath();
-        ctx.arc(lineX, dotY, radius, 0, 2 * Math.PI);
+        ctx.arc(x, y, radius, 0, 2 * Math.PI);
         ctx.fillStyle = '#ff0000';
         ctx.fill();
-
-        // Update countdown
-        const countdownEl = document.querySelector('.countdown');
-        if (countdownEl) {
-            const remainingTime = Math.max(0, state.phaseDuration - elapsed);
-            let displayTime;
-            if (remainingTime > 5) {
-                displayTime = 5.5; // Show 5.5 initially
-            } else if (remainingTime > 4.5) {
-                displayTime = 5; // Show 5 after 0.5s
-            } else {
-                displayTime = Math.ceil(remainingTime); // Full seconds after 1s
-            }
-            countdownEl.textContent = displayTime;
-        }
 
         animationFrameId = requestAnimationFrame(animate);
     }
 
     function render() {
-        let html = `
-            <h1>Coherent Breathing</h1>
-        `;
+        let html = '';
         if (state.isPlaying) {
             html += `
-                <div class="timer">Total Time: ${formatTime(state.totalTime)}</div>
                 <div class="instruction">${getInstruction(state.count)}</div>
-                <div class="countdown"></div>
+                <div id="countdown-display" class="countdown">${state.phaseTime}</div>
+                <div class="timer">Total Time: ${formatTime(state.totalTime)}</div>
+                <button id="toggle-play">${icons.pause} Pause</button>
             `;
-        }
-        if (!state.isPlaying && !state.sessionComplete) {
+        } else if (!state.sessionComplete) {
             html += `
                 <div class="settings">
                     <div class="form-group">
@@ -285,57 +276,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 <div class="prompt">Press start to begin</div>
-            `;
-        }
-        if (state.sessionComplete) {
-            html += `<div class="complete">Complete!</div>`;
-        }
-        if (!state.sessionComplete) {
-            html += `
-                <button id="toggle-play">
-                    ${state.isPlaying ? icons.pause : icons.play}
-                    ${state.isPlaying ? 'Pause' : 'Start'}
-                </button>
-            `;
-        }
-        if (state.sessionComplete) {
-            html += `
-                <button id="reset">
-                    ${icons.rotateCcw}
-                    Back to Start
-                </button>
-            `;
-        }
-        if (!state.isPlaying && !state.sessionComplete) {
-            html += `
+                <button id="toggle-play">${icons.play} Start</button>
                 <div class="shortcut-buttons">
-                    <button id="preset-2min" class="preset-button">
-                        ${icons.clock} 2 min
-                    </button>
-                    <button id="preset-5min" class="preset-button">
-                        ${icons.clock} 5 min
-                    </button>
-                    <button id="preset-10min" class="preset-button">
-                        ${icons.clock} 10 min
-                    </button>
+                    <button id="preset-2min" class="preset-button">${icons.clock} 2 min</button>
+                    <button id="preset-5min" class="preset-button">${icons.clock} 5 min</button>
+                    <button id="preset-10min" class="preset-button">${icons.clock} 10 min</button>
                 </div>
             `;
+        } else {
+            html += `
+                <div class="complete">Complete!</div>
+                <button id="reset">${icons.rotateCcw} Back to Start</button>
+            `;
         }
-        app.innerHTML = html;
+        textContent.innerHTML = html;
 
-        if (!state.sessionComplete) {
+        if (state.isPlaying) {
             document.getElementById('toggle-play').addEventListener('click', togglePlay);
-        }
-        if (state.sessionComplete) {
-            document.getElementById('reset').addEventListener('click', resetToStart);
-        }
-        if (!state.isPlaying && !state.sessionComplete) {
+        } else if (!state.sessionComplete) {
             document.getElementById('sound-toggle').addEventListener('change', toggleSound);
-            const timeLimitInput = document.getElementById('time-limit');
-            timeLimitInput.addEventListener('input', handleTimeLimitChange);
+            document.getElementById('time-limit').addEventListener('input', handleTimeLimitChange);
+            document.getElementById('toggle-play').addEventListener('click', togglePlay);
             document.getElementById('preset-2min').addEventListener('click', () => startWithPreset(2));
             document.getElementById('preset-5min').addEventListener('click', () => startWithPreset(5));
             document.getElementById('preset-10min').addEventListener('click', () => startWithPreset(10));
+        } else {
+            document.getElementById('reset').addEventListener('click', resetToStart);
         }
     }
 
