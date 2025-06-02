@@ -22,7 +22,6 @@
             overflow: hidden;
         }
 
-        /* Offline notification styles */
         #offline-notification {
             position: fixed;
             top: 10px;
@@ -41,49 +40,57 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             min-height: 100vh;
             padding: 1rem;
             width: 100%;
             box-sizing: border-box;
-            padding-left: 10%; /* Shift content left */
-        }
-
-        #box-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-        }
-
-        #app-content {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start; /* Align text to left */
-            width: 60%; /* Limit width to leave space for animation */
         }
 
         h1 {
             font-size: 2.5rem;
             font-weight: bold;
-            margin-bottom: 2rem; /* Reduced to move title up */
+            margin-bottom: 1rem;
             color: #fcd34d;
+        }
+
+        #app-content {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            flex-grow: 1;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .text-content {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .animation-content {
+            width: 50%;
+            height: 100%;
+            position: relative;
+        }
+
+        #box-canvas {
+            width: 100%;
+            height: 100%;
         }
 
         .instruction {
             font-size: 2rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
             color: #fdba74;
         }
 
         .countdown {
             font-size: 4rem;
             font-weight: bold;
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
             color: #ff6b6b;
         }
 
@@ -117,7 +124,7 @@
         .settings {
             display: flex;
             flex-direction: column;
-            align-items: flex-start; /* Align settings to left */
+            align-items: center;
             margin-bottom: 2rem;
             gap: 1rem;
         }
@@ -150,7 +157,6 @@
             justify-content: center;
             gap: 0.5rem;
             box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
-            margin-top: 2rem; /* Move button down */
         }
 
         button:hover {
@@ -219,7 +225,7 @@
             gap: 0.5rem;
             margin-top: 1.5rem;
             flex-wrap: wrap;
-            justify-content: flex-start; /* Align buttons to left */
+            justify-content: center;
         }
 
         .preset-button {
@@ -235,18 +241,21 @@
     </style>
 </head>
 <body>
-    <!-- Offline notification div -->
     <div id="offline-notification" style="display: none;">You are offline, but the app will work normally</div>
     
     <div class="container">
-        <canvas id="box-canvas"></canvas>
-        <div id="app-content"></div>
+        <h1>Coherent Breathing</h1>
+        <div id="app-content">
+            <div class="text-content"></div>
+            <div class="animation-content">
+                <canvas id="box-canvas"></canvas>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
 
     <script>
-        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('service-worker.js')
