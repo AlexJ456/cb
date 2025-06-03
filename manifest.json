@@ -3,15 +3,10 @@
   "short_name": "Coherent Breath",
   "description": "A coherent breathing exercise app for relaxation and focus",
   "start_url": "./index.html",
-  "id": "./index.html",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
   "orientation": "portrait",
-  "categories": ["health", "lifestyle", "fitness"],
-  "lang": "en-US",
-  "dir": "ltr",
-  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icons/icon-192x192.png",
