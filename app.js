@@ -6,10 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.style.height = '100%';
     canvas.width = animationContent.clientWidth;
     canvas.height = animationContent.clientHeight;
-    
+
     const state = {
         isPlaying: false,
-        count: 0,
+        count: 0, // 0: inhale, 1: exhale
         totalTime: 0,
         soundEnabled: false,
         timeLimit: '',
@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let wakeLock = null;
     let audioContext = new (window.AudioContext || window.webkitAudioContext)();
     let phaseTimeout;
+    let totalTimeInterval;
 
     const icons = {
         play: `<svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`,
@@ -45,70 +46,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function playTone() {
         if (state.soundEnabled && audioContext) {
-            try {
-                const oscillator = audioContext.createOscillator();
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-                oscillator.connect(audioContext.destination);
-                oscillator.start();
-                oscillator.stop(audioContext.currentTime + 0.1);
-            } catch (e) {
-                console.error('Error playing tone:', e);
-            }
+            const oscillator = audioContext.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+            oscillator.connect(audioContext.destination);
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.1);
         }
     }
 
-    let interval;
     let animationFrameId;
 
     async function requestWakeLock() {
         if ('wakeLock' in navigator) {
-            try {
-                wakeLock = await navigator.wakeLock.request('screen');
-                console.log('Wake lock is active');
-            } catch (err) {
-                console.error('Failed to acquire wake lock:', err);
-            }
-        } else {
-            console.log('Wake Lock API not supported');
+            wakeLock = await navigator.wakeLock.request('screen');
         }
     }
 
     function releaseWakeLock() {
-        if (wakeLock !== null) {
-            wakeLock.release()
-                .then(() => {
-                    wakeLock = null;
-                    console.log('Wake lock released');
-                })
-                .catch(err => {
-                    console.error('Failed to release wake lock:', err);
-                });
+        if (wakeLock) {
+            wakeLock.release().then(() => wakeLock = null);
         }
     }
 
     function togglePlay() {
         state.isPlaying = !state.isPlaying;
         if (state.isPlaying) {
-            if (audioContext && audioContext.state === 'suspended') {
-                audioContext.resume().then(() => {
-                    console.log('AudioContext resumed');
-                });
-            }
+            if (audioContext.state === 'suspended') audioContext.resume();
             state.totalTime = 0;
             state.count = 0;
             state.sessionComplete = false;
             state.timeLimitReached = false;
-            startInterval();
+            startTotalTimeInterval();
             startPhase();
             animate();
             requestWakeLock();
         } else {
-            clearInterval(interval);
+            clearInterval(totalTimeInterval);
             clearTimeout(phaseTimeout);
             cancelAnimationFrame(animationFrameId);
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
             releaseWakeLock();
         }
         render();
@@ -121,11 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
         state.sessionComplete = false;
         state.timeLimit = '';
         state.timeLimitReached = false;
-        clearInterval(interval);
+        clearInterval(totalTimeInterval);
         clearTimeout(phaseTimeout);
         cancelAnimationFrame(animationFrameId);
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
         releaseWakeLock();
         render();
     }
@@ -146,28 +122,23 @@ document.addEventListener('DOMContentLoaded', () => {
         state.count = 0;
         state.sessionComplete = false;
         state.timeLimitReached = false;
-        if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume().then(() => {
-                console.log('AudioContext resumed');
-            });
-        }
-        startInterval();
+        if (audioContext.state === 'suspended') audioContext.resume();
+        startTotalTimeInterval();
         startPhase();
         animate();
         requestWakeLock();
         render();
     }
 
-    function startInterval() {
-        clearInterval(interval);
-        interval = setInterval(() => {
+    function startTotalTimeInterval() {
+        clearInterval(totalTimeInterval);
+        totalTimeInterval = setInterval(() => {
             state.totalTime += 1;
             if (state.timeLimit && !state.timeLimitReached) {
                 const timeLimitSeconds = parseInt(state.timeLimit) * 60;
-                if (state.totalTime >= timeLimitSeconds) {
-                    state.timeLimitReached = true;
-                }
+                if (state.totalTime >= timeLimitSeconds) state.timeLimitReached = true;
             }
+            render();
         }, 1000);
     }
 
@@ -175,12 +146,11 @@ document.addEventListener('DOMContentLoaded', () => {
         state.phaseStartTime = performance.now();
         state.pulseStartTime = performance.now();
         playTone();
-        render();
         phaseTimeout = setTimeout(() => {
-            if (state.timeLimitReached && state.count === 1) {
+            if (state.count === 1 && state.timeLimitReached) {
                 state.sessionComplete = true;
                 state.isPlaying = false;
-                clearInterval(interval);
+                clearInterval(totalTimeInterval);
                 cancelAnimationFrame(animationFrameId);
                 releaseWakeLock();
                 render();
@@ -191,33 +161,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }, state.phaseTime * 1000);
     }
 
+    function getCountdownDisplay(elapsed) {
+        if (elapsed < 0.5) return '5.5';
+        else if (elapsed < 1.5) return '5';
+        else if (elapsed < 2.5) return '4';
+        else if (elapsed < 3.5) return '3';
+        else if (elapsed < 4.5) return '2';
+        else return '1';
+    }
+
     function animate() {
         if (!state.isPlaying) return;
         const ctx = canvas.getContext('2d');
         const elapsed = (performance.now() - state.phaseStartTime) / 1000;
         const progress = Math.min(elapsed / state.phaseTime, 1);
-        
-        const changeTimes = [0, 0.5, 1.5, 2.5, 3.5, 4.5];
-        const countdownValues = [5.5, 5, 4, 3, 2, 1];
-        let displayIndex = 0;
-        for (let i = 1; i < changeTimes.length; i++) {
-            if (elapsed >= changeTimes[i]) {
-                displayIndex = i;
-            } else {
-                break;
-            }
-        }
-        const displayCountdown = countdownValues[displayIndex];
-        document.getElementById('countdown-display').textContent = displayCountdown.toString();
 
+        // Update countdown
+        document.getElementById('countdown-display').textContent = getCountdownDisplay(elapsed);
+
+        // Calculate dot position
         const topMargin = 50;
         const bottomMargin = canvas.height - 50;
         const x = canvas.width / 2;
-        let y = state.count === 0 
-            ? bottomMargin - progress * (bottomMargin - topMargin) 
-            : topMargin + progress * (bottomMargin - topMargin);
+        let y = state.count === 0 ? 
+            bottomMargin - progress * (bottomMargin - topMargin) : 
+            topMargin + progress * (bottomMargin - topMargin);
 
-        ctx.clearRect(0, 0, canvas.width, ascended to the top of the canvas.
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw line
         ctx.beginPath();
         ctx.moveTo(x, topMargin);
         ctx.lineTo(x, bottomMargin);
@@ -225,12 +198,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.lineWidth = 4;
         ctx.stroke();
 
+        // Draw dot with pulse
         let radius = 10;
-        if (state.pulseStartTime !== null) {
+        if (state.pulseStartTime) {
             const pulseElapsed = (performance.now() - state.pulseStartTime) / 1000;
-            if (pulseElapsed < 0.5) {
-                radius = 10 + 10 * Math.sin(Math.PI * pulseElapsed / 0.5);
-            }
+            if (pulseElapsed < 0.5) radius = 10 + 10 * Math.sin(Math.PI * pulseElapsed / 0.5);
         }
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, 2 * Math.PI);
@@ -245,8 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.isPlaying) {
             html += `
                 <div class="instruction">${getInstruction(state.count)}</div>
-                <div id="countdown-display" class="countdown">${state.phaseTime}</div>
-                <div class="timer">Total Time: ${formatTime(state.totalTime)}</div>
+                <div id="countdown-display" class="countdown">${getCountdownDisplay(0)}</div>
                 <button id="toggle-play">${icons.pause} Pause</button>
             `;
         } else if (!state.sessionComplete) {
@@ -263,15 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </label>
                     </div>
                     <div class="form-group">
-                        <input
-                            type="number"
-                            inputmode="numeric"
-                            placeholder="Time limit (minutes)"
-                            value="${state.timeLimit}"
-                            id="time-limit"
-                            step="1"
-                            min="0"
-                        >
+                        <input type="number" inputmode="numeric" placeholder="Time limit (minutes)" value="${state.timeLimit}" id="time-limit" step="1" min="0">
                         <label for="time-limit">Minutes (optional)</label>
                     </div>
                 </div>
@@ -303,6 +266,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             document.getElementById('reset').addEventListener('click', resetToStart);
         }
+
+        const timerElement = document.querySelector('.timer') || document.createElement('div');
+        timerElement.className = 'timer';
+        timerElement.textContent = `Total Time: ${formatTime(state.totalTime)}`;
+        if (!document.querySelector('.timer')) document.body.appendChild(timerElement);
     }
 
     render();
