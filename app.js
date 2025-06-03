@@ -16,7 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
         phaseDuration: PHASE_DURATION,
         phaseStartTime: null,
         startTime: null,
-        pauseTime: null
+        pauseTime: null,
+        pulseStartTime: null // For dot pulsing
     };
 
     let wakeLock = null;
@@ -92,24 +93,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function togglePlay() {
         if (state.isPlaying) {
+            // Pausing now ends the session completely
             clearInterval(interval);
             cancelAnimationFrame(animationFrameId);
-            state.pauseTime = performance.now();
+            state.isPlaying = false;
+            state.startTime = null;
+            state.phaseStartTime = null;
+            state.pauseTime = null;
+            state.totalTime = 0;
+            state.count = 0;
+            state.sessionComplete = false;
+            state.timeLimitReached = false;
+            state.pulseStartTime = null;
             releaseWakeLock();
         } else {
-            if (state.startTime === null) {
-                state.startTime = performance.now();
-                state.phaseStartTime = performance.now();
-                state.count = 0;
-                state.totalTime = 0;
-                state.sessionComplete = false;
-                state.timeLimitReached = false;
-            } else {
-                const pausedDuration = performance.now() - state.pauseTime;
-                state.phaseStartTime += pausedDuration;
-                state.startTime += pausedDuration;
-                state.pauseTime = null;
-            }
+            // Start a fresh session every time
+            state.startTime = performance.now();
+            state.phaseStartTime = performance.now();
+            state.count = 0;
+            state.totalTime = 0;
+            state.sessionComplete = false;
+            state.timeLimitReached = false;
+            state.pulseStartTime = null;
             if (audioContext.state === 'suspended') {
                 audioContext.resume();
             }
@@ -117,8 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
             startInterval();
             animate();
             requestWakeLock();
+            state.isPlaying = true;
         }
-        state.isPlaying = !state.isPlaying;
         render();
     }
 
@@ -132,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.startTime = null;
         state.phaseStartTime = null;
         state.pauseTime = null;
+        state.pulseStartTime = null;
         clearInterval(interval);
         cancelAnimationFrame(animationFrameId);
         releaseWakeLock();
@@ -156,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.totalTime = 0;
         state.sessionComplete = false;
         state.timeLimitReached = false;
+        state.pulseStartTime = null;
         if (audioContext.state === 'suspended') {
             audioContext.resume();
         }
@@ -175,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const now = performance.now();
         const elapsed = (now - state.phaseStartTime) / 1000;
         if (elapsed >= state.phaseDuration) {
+            state.pulseStartTime = now; // Trigger pulse
             if (state.count === 1 && state.timeLimitReached) {
                 state.sessionComplete = true;
                 state.isPlaying = false;
@@ -207,21 +215,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const yMin = 20;
         const yMax = canvas.height - 20;
         ctx.strokeStyle = '#d97706';
-        ctx.lineWidth = 4; // Thicker line
+        ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.moveTo(x, yMin);
         ctx.lineTo(x, yMax);
         ctx.stroke();
 
-        // Draw larger dot
+        // Calculate dot position
         let dotY;
         if (state.count === 0) { // Inhale: dot moves up
             dotY = yMax - progress * (yMax - yMin);
         } else { // Exhale: dot moves down
             dotY = yMin + progress * (yMax - yMin);
         }
+
+        // Pulse effect
+        let radius = 10;
+        if (state.pulseStartTime !== null) {
+            const pulseElapsed = (now - state.pulseStartTime) / 1000;
+            if (pulseElapsed < 0.5) {
+                const pulseFactor = Math.sin(Math.PI * pulseElapsed / 0.5);
+                radius = 10 + 5 * pulseFactor;
+            }
+        }
+
+        // Draw dot
         ctx.beginPath();
-        ctx.arc(x, dotY, 10, 0, 2 * Math.PI); // Larger dot (radius 10)
+        ctx.arc(x, dotY, radius, 0, 2 * Math.PI);
         ctx.fillStyle = '#ff0000';
         ctx.fill();
 
@@ -236,10 +256,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const countdownDisplay = getCountdownDisplay(elapsed);
             const displayValue = countdownDisplay === 5.5 ? '5.5' : Math.floor(countdownDisplay).toString();
             html += `
+                <div class="timer">Total Time: ${formatTime(state.totalTime)}</div>
                 <h1>Coherent Breathing</h1>
                 <div class="exercise-container">
                     <div class="text-area">
-                        <div class="timer">Total Time: ${formatTime(state.totalTime)}</div>
                         <div class="instruction">${getInstruction(state.count)}</div>
                         <div class="countdown">${displayValue}</div>
                     </div>
@@ -249,12 +269,14 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         } else if (state.sessionComplete) {
             html += `
+                <div class="timer">Total Time: ${formatTime(state.totalTime)}</div>
                 <h1>Coherent Breathing</h1>
                 <div class="complete">Complete!</div>
                 <button id="reset">${icons.rotateCcw} Back to Start</button>
             `;
         } else {
             html += `
+                <div class="timer">Total Time: ${formatTime(state.totalTime)}</div>
                 <h1>Coherent Breathing</h1>
                 <div class="settings">
                     <div class="form-group">
@@ -293,10 +315,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (state.isPlaying) {
             const animationArea = document.querySelector('.animation-area');
-            animationArea.appendChild(canvas);
-            canvas.style.display = 'block';
-            canvas.width = animationArea.offsetWidth;
-            canvas.height = animationArea.offsetHeight;
+            if (animationArea && !animationArea.contains(canvas)) {
+                animationArea.appendChild(canvas);
+                canvas.style.display = 'block';
+                canvas.width = animationArea.offsetWidth;
+                canvas.height = animationArea.offsetHeight;
+            }
         } else {
             canvas.style.display = 'none';
         }
@@ -318,8 +342,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('resize', () => {
         if (state.isPlaying) {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            const animationArea = document.querySelector('.animation-area');
+            if (animationArea) {
+                canvas.width = animationArea.offsetWidth;
+                canvas.height = animationArea.offsetHeight;
+            }
         }
     });
 
